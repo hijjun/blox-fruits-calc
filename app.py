@@ -131,7 +131,12 @@ with st.sidebar:
     menu = st.radio("이동할 페이지:", ["🧮 거래 계산기", "💰 시세 등급표"])
     st.markdown("---")
     st.caption("Updated: 2026.01.16")
+    # ... (사이드바의 기존 코드들: 메뉴, 업데이트 날짜 등) ...
     st.caption("Made in Fukuoka ✈️")
+    
+    # [NEW] 방문자 수 배지 (여기에 붙여넣으세요!)
+    st.markdown("---")
+    st.markdown("![Visitors](https://api.visitorbadge.io/api/visitors?path=blox-fruits-calculator.streamlit.app&label=VISITORS&countColor=%23FFD700&style=flat&labelStyle=upper)")
 
 # ---------------------------------------------------------
 # 4. 페이지 1: 거래 계산기
