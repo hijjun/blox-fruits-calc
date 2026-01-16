@@ -203,12 +203,44 @@ if menu == "🧮 거래 계산기":
         with m3: st.metric("상대 가치 합계", f"${their_total:,}")
 
         st.write("")
-        if diff > 0: st.success(f"✅ **대박! (+${diff:,}) 이득입니다.** 교환을 추천합니다.")
-        elif diff < 0: st.error(f"🔻 **손해입니다! (-${abs(diff):,})** 교환을 다시 생각해보세요.")
-        else: st.info("⚖️ **가치가 동일합니다.** 공정한 거래입니다.")
+        result_msg = "" # 공유용 텍스트 변수
+        
+        if diff > 0: 
+            st.success(f"✅ **대박! (+${diff:,}) 이득입니다.** 교환을 추천합니다.")
+            result_msg = f"🚀 대박 이득! (+${diff:,}) 나만 믿고 거래해!"
+        elif diff < 0: 
+            st.error(f"🔻 **손해입니다! (-${abs(diff):,})** 교환을 다시 생각해보세요.")
+            result_msg = f"😭 으악 손해다.. (-${abs(diff):,}) 말려줘서 고마워.."
+        else: 
+            st.info("⚖️ **가치가 동일합니다.** 공정한 거래입니다.")
+            result_msg = "⚖️ 완벽하게 공정한 엄대엄 거래!"
+
+        # ---------------------------------------------------------
+        # [NEW] 친구에게 자랑하기 (텍스트 복사 기능)
+        # ---------------------------------------------------------
+        st.write("")
+        st.write("")
+        st.markdown("##### 📤 친구에게 결과 공유하기")
+        
+        # 복사할 텍스트 만들기
+        share_text = f"""[Blox Fruits 거래 판독기 결과]
+📤 나: {', '.join(my_offer_names) if my_offer_names else '없음'}
+📥 상대: {', '.join(their_offer_names) if their_offer_names else '없음'}
+--------------------------------
+📊 결과: {result_msg}
+💰 내 가치: ${my_total:,} vs 상대 가치: ${their_total:,}
+--------------------------------
+🔗 나도 계산하러 가기:
+https://blox-fruits-calculator.streamlit.app"""
+        
+        # 1. 캡처 유도 멘트
+        st.caption("📸 화면을 캡처해서 친구에게 보내거나, 아래 텍스트를 복사하세요!")
+        
+        # 2. 복사하기 쉬운 코드 블록 (우측 상단에 복사 버튼이 자동으로 생김)
+        st.code(share_text, language="text")
+
     else:
         st.info("👆 위에서 아이템을 선택하면 결과를 분석해 드립니다.")
-
 # ---------------------------------------------------------
 # 5. 페이지 2: 시세 등급표
 # ---------------------------------------------------------
