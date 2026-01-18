@@ -69,6 +69,14 @@ st.markdown("""
     }
     .total-label { font-size: 0.8em; color: #aaa; margin-bottom: 2px; }
     .total-value { font-size: 1.5em; font-weight: bold; color: #FFD700; }
+
+    /* [NEW] 코드 섹션 스타일 */
+    .code-box {
+        background-color: #262730; padding: 15px; border-radius: 8px; 
+        border-left: 5px solid #FFD700; margin-bottom: 10px;
+    }
+    .code-title { font-weight: bold; color: #FFD700; font-size: 1.1em; }
+    .code-reward { color: #ccc; font-size: 0.9em; margin-bottom: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,7 +85,7 @@ try:
     with open('fruits_data.json', 'r', encoding='utf-8') as f:
         FRUITS_DB = json.load(f)
 except FileNotFoundError:
-    st.error("🚨 데이터 파일을 찾을 수 없습니다.")
+    # st.error("🚨 데이터 파일을 찾을 수 없습니다.") # 미관상 에러 메시지보다는 빈 리스트 처리
     FRUITS_DB = []
 
 # 한글 이름 매핑
@@ -121,8 +129,8 @@ if not df.empty:
 # ---------------------------------------------------------
 st.title("⚖️ Blox Fruits 거래 판독기")
 
-# [핵심 변경] 사이드바 대신 상단 탭 사용
-tab_calc, tab_tier = st.tabs(["🧮 거래 계산기", "💰 시세 등급표"])
+# [핵심 변경] 탭을 3개로 확장
+tab_calc, tab_tier, tab_codes = st.tabs(["🧮 거래 계산기", "💰 시세 등급표", "🏴‍☠️ 블피 코드"])
 
 # =========================================================
 # 탭 1: 거래 계산기
@@ -130,12 +138,12 @@ tab_calc, tab_tier = st.tabs(["🧮 거래 계산기", "💰 시세 등급표"])
 with tab_calc:
     st.markdown("##### 아이템을 선택하고 검은 배경을 터치하세요!")
     
-    col1, col2 = st.columns([1, 1]) # 모바일에서는 1:1 비율이 더 보기 좋음
+    col1, col2 = st.columns([1, 1])
 
     # === [왼쪽] My Offer ===
     with col1:
         st.markdown("### 📤 나 (줌)")
-        my_offer_names = st.multiselect("내 아이템", df['display_name'].tolist(), key="my_offer", label_visibility="collapsed", placeholder="내 아이템 선택")
+        my_offer_names = st.multiselect("내 아이템", df['display_name'].tolist() if not df.empty else [], key="my_offer", label_visibility="collapsed", placeholder="내 아이템 선택")
         
         my_total = 0
         if my_offer_names:
@@ -154,7 +162,7 @@ with tab_calc:
     # === [오른쪽] Their Offer ===
     with col2:
         st.markdown("### 📥 상대 (받음)")
-        their_offer_names = st.multiselect("상대 아이템", df['display_name'].tolist(), key="their_offer", label_visibility="collapsed", placeholder="상대 아이템 선택")
+        their_offer_names = st.multiselect("상대 아이템", df['display_name'].tolist() if not df.empty else [], key="their_offer", label_visibility="collapsed", placeholder="상대 아이템 선택")
         
         their_total = 0
         if their_offer_names:
@@ -193,14 +201,12 @@ with tab_calc:
         main_msg = "⚖️ **가치가 동일합니다.**"
 
     if my_offer_names or their_offer_names:
-        # 결과 박스 디자인 강화
         st.markdown(f"""
         <div style="background-color: {box_color}; padding: 15px; border-radius: 10px; border: 2px solid {border_color}; text-align: center; margin-bottom: 20px;">
             <h3 style="margin:0;">{main_msg}</h3>
         </div>
         """, unsafe_allow_html=True)
 
-        # 공유 기능 (복사 박스)
         share_text = f"""[Blox Fruits 거래 결과]
 📤 나: {', '.join(my_offer_names) if my_offer_names else '없음'}
 📥 상대: {', '.join(their_offer_names) if their_offer_names else '없음'}
@@ -222,52 +228,110 @@ https://blox-fruits-calculator.streamlit.app"""
 with tab_tier:
     st.markdown("##### 🏆 현재 서버 시세 TOP 3")
     
-    # TOP 3 로직
-    sorted_df = df.sort_values(by='value', ascending=False)
-    top3 = sorted_df.head(3)
-    
-    c1, c2, c3 = st.columns(3)
-    medals = ["🥇", "🥈", "🥉"]
-    colors = ["#FFD700", "#C0C0C0", "#CD7F32"]
-    
-    for idx, (col, medal, color) in enumerate(zip([c1, c2, c3], medals, colors)):
-        row = top3.iloc[idx]
-        with col:
-            st.markdown(f"""
-            <div style="background-color: #262730; padding: 10px; border-radius: 10px; border: 2px solid {color}; text-align: center;">
-                <div style="font-size: 1.5em;">{medal}</div>
-                <img src="{row['image']}" style="width: 50px; height: 50px; object-fit: contain;">
-                <div style="font-size: 0.8em; font-weight: bold; margin-top: 5px; color: {color};">{row['display_name'].split('(')[0]}</div>
-                <div style="font-size: 0.9em; font-weight: bold;">${row['value']:,}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown("#### 📊 전체 등급표")
-    
-    sub_tabs = st.tabs(["💎 SS", "🥇 S", "🥈 A", "🥉 B", "🧱 C"])
-    tier_keys = ["SS", "S", "A", "B", "C"]
-
-    for i, tier in enumerate(tier_keys):
-        with sub_tabs[i]:
-            items = df[df['tier'] == tier].sort_values(by='value', ascending=False)
-            for _, row in items.iterrows():
-                trend_icon = "🔥" if row['trend'] == "Overpaid" else "➖"
-                st.markdown(f"""
-                <div class='fruit-row'>
-                    <img src="{row['image']}" class='fruit-img'>
-                    <div style='flex-grow: 1;'>
-                        <div style='font-weight: bold; font-size: 0.9rem;'>{row['display_name']}</div>
+    if not df.empty:
+        # TOP 3 로직
+        sorted_df = df.sort_values(by='value', ascending=False)
+        top3 = sorted_df.head(3)
+        
+        c1, c2, c3 = st.columns(3)
+        medals = ["🥇", "🥈", "🥉"]
+        colors = ["#FFD700", "#C0C0C0", "#CD7F32"]
+        
+        for idx, (col, medal, color) in enumerate(zip([c1, c2, c3], medals, colors)):
+            if idx < len(top3):
+                row = top3.iloc[idx]
+                with col:
+                    st.markdown(f"""
+                    <div style="background-color: #262730; padding: 10px; border-radius: 10px; border: 2px solid {color}; text-align: center;">
+                        <div style="font-size: 1.5em;">{medal}</div>
+                        <img src="{row['image']}" style="width: 50px; height: 50px; object-fit: contain;">
+                        <div style="font-size: 0.8em; font-weight: bold; margin-top: 5px; color: {color};">{row['display_name'].split('(')[0]}</div>
+                        <div style="font-size: 0.9em; font-weight: bold;">${row['value']:,}</div>
                     </div>
-                    <div style='text-align: right;'>
-                        <div class='price-text'>${row['value']:,}</div>
-                        <div style='font-size: 0.7em; color: #aaa;'>{trend_icon}</div>
+                    """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+        st.markdown("#### 📊 전체 등급표")
+        
+        sub_tabs = st.tabs(["💎 SS", "🥇 S", "🥈 A", "🥉 B", "🧱 C"])
+        tier_keys = ["SS", "S", "A", "B", "C"]
+    
+        for i, tier in enumerate(tier_keys):
+            with sub_tabs[i]:
+                items = df[df['tier'] == tier].sort_values(by='value', ascending=False)
+                for _, row in items.iterrows():
+                    trend_icon = "🔥" if row.get('trend') == "Overpaid" else "➖"
+                    st.markdown(f"""
+                    <div class='fruit-row'>
+                        <img src="{row['image']}" class='fruit-img'>
+                        <div style='flex-grow: 1;'>
+                            <div style='font-weight: bold; font-size: 0.9rem;'>{row['display_name']}</div>
+                        </div>
+                        <div style='text-align: right;'>
+                            <div class='price-text'>${row['value']:,}</div>
+                            <div style='font-size: 0.7em; color: #aaa;'>{trend_icon}</div>
+                        </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+    else:
+        st.warning("⚠️ 데이터 파일(fruits_data.json)이 없어서 등급표를 표시할 수 없습니다.")
+
+# =========================================================
+# 탭 3: 블피 코드 (신규 추가!)
+# =========================================================
+with tab_codes:
+    st.markdown("##### 🎟️ 터치하여 코드를 복사하세요!")
+    st.caption("※ 코드는 게임 내 'Twitter 아이콘' 버튼을 눌러 입력하세요.")
+    
+    # 1. 스탯 초기화 (가장 중요)
+    st.subheader("🔥 스탯 초기화 (Stat Reset)")
+    
+    reset_codes = [
+        {"code": "SUB2GAMERROBOT_RESET1", "desc": "스탯 초기화"},
+        {"code": "KITT_RESET", "desc": "스탯 초기화"},
+        {"code": "Sub2UncleKizaru", "desc": "스탯 초기화"},
+    ]
+    
+    for item in reset_codes:
+        col_c1, col_c2 = st.columns([3, 1])
+        with col_c1:
+            st.code(item['code'], language="text")
+        with col_c2:
+            st.caption(f"🎁 {item['desc']}")
+            
+    st.divider()
+
+    # 2. 경험치 부스트 및 기타
+    st.subheader("⚡ 경험치 2배 & 기타 (Active Codes)")
+
+    # 데이터 프레임으로 깔끔하게 표시
+    code_data = [
+        {"Code": "AXIORE", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "SUB2GAMERROBOT_EXP1", "Reward": "30분 경험치 2배", "Type": "Boost"},
+        {"Code": "KITTGAMING", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "ENYU_IS_PRO", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "BLUXXY", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "JCWK", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "MAGICBUS", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "STARCODEHEO", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "SUB2CAPTAINMAUI", "Reward": "20분 경험치 2배", "Type": "Boost"},
+        {"Code": "BIGNEWS", "Reward": "칭호 'Bignews'", "Type": "Title"},
+        {"Code": "FUDD10", "Reward": "1 Beli ($1)", "Type": "Currency"},
+    ]
+    
+    st.dataframe(
+        pd.DataFrame(code_data),
+        column_config={
+            "Code": "코드명",
+            "Reward": "보상 내용",
+            "Type": "구분"
+        },
+        use_container_width=True,
+        hide_index=True
+    )
 
 # ---------------------------------------------------------
-# 하단 푸터 (방문자 수 등)
+# 하단 푸터
 # ---------------------------------------------------------
 st.markdown("---")
 st.caption("Updated: 2026.01.16 | Made in Fukuoka ✈️")
